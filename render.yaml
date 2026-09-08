@@ -18,7 +18,6 @@ services:
   - type: web
     name: hokm-arena-web
     runtime: static
-    plan: free
     buildCommand: corepack enable && pnpm install --frozen-lockfile && PORT=10000 BASE_PATH=/ pnpm --filter @workspace/hokm-arena run build
     staticPublishPath: artifacts/hokm-arena/dist/public
     envVars:
