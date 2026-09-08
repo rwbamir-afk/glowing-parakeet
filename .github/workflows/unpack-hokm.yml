@@ -1,0 +1,61 @@
+name: Unpack Hokm Arena
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract Hokm Arena ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="Persian-Hokm-Telegram-Phase-3.zip"
+
+          if [ ! -f "$archive" ]; then
+            echo "Archive not found: $archive"
+            exit 1
+          fi
+
+          rm -rf /tmp/hokm-extracted
+          mkdir -p /tmp/hokm-extracted
+
+          unzip -q "$archive" -d /tmp/hokm-extracted
+
+          project_dir="$(find /tmp/hokm-extracted -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+
+          if [ -z "$project_dir" ]; then
+            echo "Could not find the extracted project directory."
+            exit 1
+          fi
+
+          cp -a "$project_dir"/. .
+
+          rm -rf imports
+
+      - name: Commit extracted project
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Import Hokm Arena Phase 3 source"
+          git push
