@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Hokm Arena"
+description = "A Persian-first Telegram Hokm experience with a polished lobby, live table, player progression, and an extensible foundation for future social, economy, and cosmetic systems."
+version = "1.0.0"
+id = "artifacts/hokm-arena"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19669
+
+[services.development]
+run = "pnpm --filter @workspace/hokm-arena run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hokm-arena", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hokm-arena/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19669"
+BASE_PATH = "/"

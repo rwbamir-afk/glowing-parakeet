@@ -1,0 +1,511 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: profile
+    description: Player profile and progression
+  - name: lobby
+    description: Home lobby summary
+  - name: rooms
+    description: Room creation and joining
+  - name: rankings
+    description: Competitive rankings
+  - name: rewards
+    description: Daily rewards
+  - name: gameplay
+    description: Server-authoritative table state and actions
+  - name: shop
+    description: Cosmetics catalog and purchases
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /profile/me:
+    get:
+      operationId: getMyProfile
+      tags: [profile]
+      summary: Get the current player's profile
+      responses:
+        "200":
+          description: Current player profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerProfile"
+  /lobby/summary:
+    get:
+      operationId: getLobbySummary
+      tags: [lobby]
+      summary: Get the lobby summary
+      responses:
+        "200":
+          description: Lobby summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbySummary"
+  /rooms:
+    get:
+      operationId: listRooms
+      tags: [rooms]
+      summary: List open rooms
+      responses:
+        "200":
+          description: Open rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+    post:
+      operationId: createRoom
+      tags: [rooms]
+      summary: Create a new room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomInput"
+      responses:
+        "201":
+          description: Created room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+  /rooms/{roomId}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get a room by id
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Room details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rooms/{roomId}/join:
+    post:
+      operationId: joinRoom
+      tags: [rooms]
+      summary: Join an open room
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Updated room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rankings:
+    get:
+      operationId: listRankings
+      tags: [rankings]
+      summary: List top players
+      responses:
+        "200":
+          description: Top ranked players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankingEntry"
+  /rewards/daily:
+    get:
+      operationId: getDailyReward
+      tags: [rewards]
+      summary: Get today's daily reward state
+      responses:
+        "200":
+          description: Daily reward
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReward"
+    post:
+      operationId: claimDailyReward
+      tags: [rewards]
+      summary: Claim today's daily reward
+      responses:
+        "200":
+          description: Claimed daily reward
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReward"
+  /tables/{tableId}/state:
+    get:
+      operationId: getTableState
+      tags: [gameplay]
+      summary: Get the current server-authoritative table state
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+      responses:
+        "200":
+          description: Table state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameTableState"
+  /tables/{tableId}/play:
+    post:
+      operationId: playCard
+      tags: [gameplay]
+      summary: Play one legal card from the current player's hand
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayCardInput"
+      responses:
+        "200":
+          description: Updated table state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameTableState"
+        "400":
+          description: Card cannot be played
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /shop/catalog:
+    get:
+      operationId: getShopCatalog
+      tags: [shop]
+      summary: Get the rotating cosmetics catalog
+      responses:
+        "200":
+          description: Cosmetics catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShopItem"
+  /shop/items/{itemId}/purchase:
+    post:
+      operationId: purchaseShopItem
+      tags: [shop]
+      summary: Purchase a cosmetic item with an in-game currency
+      parameters:
+        - $ref: "#/components/parameters/ItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopPurchaseInput"
+      responses:
+        "200":
+          description: Purchase result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopPurchaseResult"
+        "400":
+          description: Purchase cannot be completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: string
+    TableId:
+      name: tableId
+      in: path
+      required: true
+      schema:
+        type: string
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    PlayerProfile:
+      type: object
+      required:
+        - id
+        - displayName
+        - handle
+        - level
+        - levelTitle
+        - xp
+        - xpToNext
+        - coins
+        - gems
+        - rating
+        - wins
+        - koots
+        - streak
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        handle: { type: string }
+        level: { type: integer }
+        levelTitle: { type: string }
+        xp: { type: integer }
+        xpToNext: { type: integer }
+        coins: { type: integer }
+        gems: { type: integer }
+        rating: { type: integer }
+        wins: { type: integer }
+        koots: { type: integer }
+        streak: { type: integer }
+    LobbySummary:
+      type: object
+      required:
+        - onlinePlayers
+        - liveTables
+        - openRooms
+        - quickMatchSeconds
+        - featuredEvent
+        - recentActivity
+      properties:
+        onlinePlayers: { type: integer }
+        liveTables: { type: integer }
+        openRooms: { type: integer }
+        quickMatchSeconds: { type: integer }
+        featuredEvent:
+          type: object
+          required: [title, subtitle, daysLeft, accent]
+          properties:
+            title: { type: string }
+            subtitle: { type: string }
+            daysLeft: { type: integer }
+            accent: { type: string }
+        recentActivity:
+          type: array
+          items:
+            type: object
+            required: [id, text, time]
+            properties:
+              id: { type: string }
+              text: { type: string }
+              time: { type: string }
+    Room:
+      type: object
+      required:
+        - id
+        - code
+        - name
+        - mode
+        - stake
+        - host
+        - players
+        - maxPlayers
+        - status
+        - createdAt
+      properties:
+        id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        mode: { type: string }
+        stake: { type: integer }
+        host: { type: string }
+        players: { type: integer }
+        maxPlayers: { type: integer }
+        status: { type: string }
+        createdAt: { type: string }
+    RoomInput:
+      type: object
+      required: [name, mode, stake]
+      properties:
+        name: { type: string, minLength: 1 }
+        mode: { type: string }
+        stake: { type: integer, minimum: 0 }
+    RankingEntry:
+      type: object
+      required:
+        - rank
+        - player
+        - title
+        - rating
+        - wins
+        - trend
+      properties:
+        rank: { type: integer }
+        player: { type: string }
+        title: { type: string }
+        rating: { type: integer }
+        wins: { type: integer }
+        trend: { type: string }
+    DailyReward:
+      type: object
+      required:
+        - day
+        - totalDays
+        - claimed
+        - rewardCoins
+        - label
+        - nextReward
+      properties:
+        day: { type: integer }
+        totalDays: { type: integer }
+        claimed: { type: boolean }
+        rewardCoins: { type: integer }
+        label: { type: string }
+        nextReward: { type: integer }
+    Card:
+      type: object
+      required: [id, rank, suit, color]
+      properties:
+        id: { type: string }
+        rank: { type: string }
+        suit: { type: string }
+        color: { type: string }
+    TablePlayer:
+      type: object
+      required: [id, name, seat, team, connected, isHakem]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        seat: { type: integer }
+        team: { type: string }
+        connected: { type: boolean }
+        isHakem: { type: boolean }
+    PlayedCard:
+      type: object
+      required: [card, playerId, playerName]
+      properties:
+        card:
+          $ref: "#/components/schemas/Card"
+        playerId: { type: string }
+        playerName: { type: string }
+    GameTableState:
+      type: object
+      required:
+        - id
+        - roomName
+        - code
+        - hand
+        - players
+        - trumpSuit
+        - currentTurn
+        - trick
+        - totalTricks
+        - teamScores
+        - lastPlayed
+        - status
+      properties:
+        id: { type: string }
+        roomName: { type: string }
+        code: { type: string }
+        hand:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/TablePlayer"
+        trumpSuit: { type: string }
+        currentTurn: { type: string }
+        trick: { type: integer }
+        totalTricks: { type: integer }
+        teamScores:
+          type: object
+          required: [blue, red]
+          properties:
+            blue: { type: integer }
+            red: { type: integer }
+        lastPlayed:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayedCard"
+        status: { type: string }
+    PlayCardInput:
+      type: object
+      required: [cardId]
+      properties:
+        cardId: { type: string, minLength: 1 }
+    ShopItem:
+      type: object
+      required: [id, name, category, rarity, price, currency, owned, featured]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category: { type: string }
+        rarity: { type: string }
+        price: { type: integer }
+        currency: { type: string }
+        owned: { type: boolean }
+        featured: { type: boolean }
+        description: { type: string }
+    ShopPurchaseInput:
+      type: object
+      required: [currency]
+      properties:
+        currency: { type: string, enum: [coins, gems] }
+    ShopPurchaseResult:
+      type: object
+      required: [item, coins, gems, message]
+      properties:
+        item:
+          $ref: "#/components/schemas/ShopItem"
+        coins: { type: integer }
+        gems: { type: integer }
+        message: { type: string }
+
